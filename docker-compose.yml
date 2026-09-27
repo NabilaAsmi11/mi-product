@@ -1,0 +1,47 @@
+services:
+  product-service:
+    build: ./product-service
+    container_name: product-service
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      DB_HOST: product-db
+      DB_PORT: 5432
+      DB_USER: admin
+      DB_PASSWORD: admin123
+      DB_NAME: productdb
+    depends_on:
+      product-db:
+        condition: service_healthy
+    networks:
+      - product-network
+
+  product-db:
+    image: postgres:16-alpine
+    container_name: product-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: productdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - product-db-data:/var/lib/postgresql/data
+      - ./product-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d productdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - product-network
+
+volumes:
+  product-db-data:
+
+networks:
+  product-network:
+    driver: bridge
