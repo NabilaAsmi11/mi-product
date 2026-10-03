@@ -4,9 +4,9 @@ const { Pool } = require('pg');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(express.json());
+// Batas body dinaikkan ke 3MB agar menerima Base64 gambar tanpa error 413
+app.use(express.json({ limit: '3mb' }));
 
-// Konfigurasi koneksi database PostgreSQL
 const pool = new Pool({
   host: process.env.DB_HOST || 'product-db',
   user: process.env.DB_USER || 'admin',
@@ -14,6 +14,45 @@ const pool = new Pool({
   database: process.env.DB_NAME || 'productdb',
   port: parseInt(process.env.DB_PORT, 10) || 5432,
 });
+
+// Helper Fungsi Validasi Base64 Image
+function validateBase64Image(image) {
+  if (!image || typeof image !== 'string' || image.trim() === '') {
+    return { valid: false, message: 'Field image wajib diisi' };
+  }
+
+  let cleanBase64 = image;
+  if (image.includes(',')) {
+    cleanBase64 = image.split(',')[1];
+  }
+
+  // Validasi Format Base64
+  const base64Regex = /^[A-Za-z0-9+/]+={0,2}$/;
+  if (cleanBase64.length % 4 !== 0 || !base64Regex.test(cleanBase64)) {
+    return { valid: false, message: 'Field image harus berupa Base64 yang valid' };
+  }
+
+  // Validasi Ukuran (Diubah sementara ke 10 byte untuk Skenario 4)
+  const buffer = Buffer.from(cleanBase64, 'base64');
+const maxSizeInBytes = 2 * 1024 * 1024; // 2 MB// Limit sementara untuk uji coba Skenario 4
+
+  if (buffer.length > maxSizeInBytes) {
+    return { valid: false, message: 'Ukuran image maksimal 2 MB' };
+  }
+
+  // Validasi Magic Bytes
+  const hexHeader = buffer.toString('hex', 0, 4);
+  const isPNG = hexHeader.startsWith('89504e47');
+  const isJPEG = hexHeader.startsWith('ffd8ff');
+  const isWEBP = hexHeader.startsWith('52494646');
+  const isGIF = hexHeader.startsWith('474946');
+
+  if (!isPNG && !isJPEG && !isWEBP && !isGIF) {
+    return { valid: false, message: 'Field image harus berupa Base64 yang valid' };
+  }
+
+  return { valid: true, cleanBase64 };
+}
 
 // 1. GET - Ambil Semua Produk
 app.get('/products', async (req, res) => {
@@ -43,19 +82,24 @@ app.get('/products/:id', async (req, res) => {
 
 // 3. POST - Tambah Produk
 app.post('/products', async (req, res) => {
-  const { name, description, price, stock } = req.body;
+  const { name, description, price, stock, image } = req.body;
 
   if (!name || price === undefined) {
     return res.status(400).json({ error: 'Name dan price wajib diisi!' });
   }
 
+  const imageValidation = validateBase64Image(image);
+  if (!imageValidation.valid) {
+    return res.status(400).json({ error: imageValidation.message });
+  }
+
   try {
     const query = `
-      INSERT INTO products (name, description, price, stock)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO products (name, description, price, stock, image)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING *;
     `;
-    const values = [name, description || null, price, stock || 0];
+    const values = [name, description || null, price, stock || 0, imageValidation.cleanBase64];
     const result = await pool.query(query, values);
 
     res.status(201).json({
@@ -71,7 +115,12 @@ app.post('/products', async (req, res) => {
 // 4. PUT - Perbarui Produk
 app.put('/products/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, description, price, stock } = req.body;
+  const { name, description, price, stock, image } = req.body;
+
+  const imageValidation = validateBase64Image(image);
+  if (!imageValidation.valid) {
+    return res.status(400).json({ error: imageValidation.message });
+  }
 
   try {
     const query = `
@@ -81,11 +130,19 @@ app.put('/products/:id', async (req, res) => {
         description = COALESCE($2, description),
         price = COALESCE($3, price),
         stock = COALESCE($4, stock),
+        image = $5,
         updated_at = NOW()
-      WHERE id = $5
+      WHERE id = $6
       RETURNING *;
     `;
-    const values = [name || null, description || null, price || null, stock || null, id];
+    const values = [
+      name || null,
+      description || null,
+      price || null,
+      stock || null,
+      imageValidation.cleanBase64,
+      id
+    ];
     const result = await pool.query(query, values);
 
     if (result.rows.length === 0) {
@@ -124,5 +181,5 @@ app.delete('/products/:id', async (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Product service running on port ${PORT}`);
 });
