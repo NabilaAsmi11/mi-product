@@ -35,4 +35,21 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Internal Microservices
+    |--------------------------------------------------------------------------
+    |
+    | Konfigurasi URL untuk komunikasi REST API antar service pendukung.
+    |
+    */
+
+    'product' => [
+        'url' => env('PRODUCT_SERVICE_URL', 'http://product-service:3001'),
+    ],
+
+    'cart' => [
+        'url' => env('CART_SERVICE_URL', 'http://cart-service:3000'),
+    ],
+
 ];
