@@ -56,3 +56,21 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Menjalankan dengan Docker Compose
+
+Buat `order-service/.env` dari `.env.example` jika belum ada, lalu isi `APP_KEY`. Dari root repository, jalankan:
+
+```bash
+docker compose up --build order-service
+```
+
+Compose akan membangun image, menunggu MySQL siap, menjalankan migrasi database, lalu menyajikan service di `http://localhost:3003`. Untuk menghentikannya, jalankan `docker compose down`.
+
+Jika hanya ingin menjalankan migrasi secara manual dari root repository, gunakan:
+
+```bash
+docker compose run --rm order-service php artisan migrate
+```
+
+Jangan jalankan `php artisan migrate` langsung dari host kecuali kredensial database di `.env` cocok dengan MySQL Docker yang dipetakan ke port `3307`. Container aplikasi menggunakan koneksi internal Docker (`order-db:3306`).
