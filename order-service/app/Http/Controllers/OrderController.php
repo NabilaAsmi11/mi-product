@@ -20,9 +20,6 @@ class OrderController extends Controller
 
     /**
      * Handle order creation request.
-     * 
-     * @param StoreOrderRequest $request
-     * @return JsonResponse
      */
     public function store(StoreOrderRequest $request): JsonResponse
     {
@@ -34,5 +31,36 @@ class OrderController extends Controller
             'message' => 'Order created successfully',
             'data' => $order
         ], 201);
+    }
+
+    /**
+     * Health check endpoint for monitoring service status.
+     */
+    public function health(): JsonResponse
+    {
+        return response()->json([
+            'status' => 'healthy',
+            'service' => 'order-service',
+            'timestamp' => now()->toIso8601String(),
+        ], 200);
+    }
+
+    /**
+     * Get order detail by ID.
+     */
+    public function show(int $id): JsonResponse
+    {
+        $order = $this->orderService->getOrderById($id);
+
+        if (!$order) {
+            return response()->json([
+                'message' => 'Order not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Order retrieved successfully',
+            'data' => $order
+        ], 200);
     }
 }

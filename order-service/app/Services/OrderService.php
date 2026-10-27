@@ -85,4 +85,12 @@ class OrderService
         // Kembalikan pesanan beserta relasi items-nya
         return $order->load('items');
     }
+
+    /**
+     * Get order detail by ID.
+     */
+    public function getOrderById(int $id)
+    {
+        return Order::with('items')->find($id);
+    }
 }
