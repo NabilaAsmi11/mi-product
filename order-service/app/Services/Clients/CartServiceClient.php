@@ -1,8 +1,9 @@
+<?php
+
 namespace App\Services\Clients;
 
-use App\Exceptions\ServiceUnavailableException;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use App\Exceptions\ServiceUnavailableException;
 
 class CartServiceClient
 {
@@ -10,40 +11,30 @@ class CartServiceClient
 
     public function __construct()
     {
-        // Membaca URL cart-service dari environment variable
-        $this->baseUrl = config('services.cart.url', env('CART_SERVICE_URL', 'http://cart-service:3000'));
+        $this->baseUrl = config('services.cart.url', 'http://cart-service:3000');
     }
 
-    public function getCart($userId)
+    public function getCart(int $userId): array
     {
         try {
-            $response = Http::timeout(5)->get("{$this->baseUrl}/carts/{$userId}");
+            $response = Http::timeout(5)->get("{$this->baseUrl}/api/cart/{$userId}");
 
             if ($response->failed()) {
-                Log::error("Cart service error: " . $response->body());
-                throw new ServiceUnavailableException("Cart service tidak dapat dihubungi, coba lagi nanti");
+                throw new ServiceUnavailableException("Gagal mengambil data keranjang dari Cart Service");
             }
 
-            return $response->json('data');
-        } catch (\Illuminate\Http\Client\ConnectionException $e) {
-            Log::error("Cart service connection failed: " . $e->getMessage());
-            throw new ServiceUnavailableException("Cart service tidak dapat dihubungi, coba lagi nanti");
+            return $response->json();
+        } catch (\Exception $e) {
+            throw new ServiceUnavailableException("Cart Service tidak dapat diakses: " . $e->getMessage());
         }
     }
 
-    public function clearCart($userId)
+    public function clearCart(int $userId): bool
     {
         try {
-            $response = Http::timeout(5)->delete("{$this->baseUrl}/carts/{$userId}");
-
-            if ($response->failed()) {
-                Log::warning("Gagal mengosongkan keranjang untuk user {$userId}: " . $response->body());
-                return false;
-            }
-
-            return true;
-        } catch (\Illuminate\Http\Client\ConnectionException $e) {
-            Log::warning("Koneksi gagal saat mengosongkan keranjang user {$userId}: " . $e->getMessage());
+            $response = Http::timeout(5)->delete("{$this->baseUrl}/api/cart/{$userId}");
+            return $response->successful();
+        } catch (\Exception $e) {
             return false;
         }
     }

@@ -1,9 +1,10 @@
+<?php
+
 namespace App\Services\Clients;
 
+use Illuminate\Support\Facades\Http;
 use App\Exceptions\ServiceUnavailableException;
 use App\Exceptions\BusinessException;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
 class ProductServiceClient
 {
@@ -11,29 +12,27 @@ class ProductServiceClient
 
     public function __construct()
     {
-        // Membaca URL product-service dari environment variable
-        $this->baseUrl = config('services.product.url', env('PRODUCT_SERVICE_URL', 'http://product-service:3001'));
+        $this->baseUrl = config('services.product.url', 'http://product-service:3001');
     }
 
-    public function getProduct($productId)
+    public function getProduct(int $productId): array
     {
         try {
-            // Melakukan HTTP GET dengan timeout 5 detik
-            $response = Http::timeout(5)->get("{$this->baseUrl}/products/{$productId}");
+            $response = Http::timeout(5)->get("{$this->baseUrl}/api/products/{$productId}");
 
             if ($response->status() === 404) {
-                throw new BusinessException("Produk dengan id {$productId} tidak ditemukan");
+                throw new BusinessException("Produk dengan ID {$productId} tidak ditemukan");
             }
 
             if ($response->failed()) {
-                Log::error("Product service error: " . $response->body());
-                throw new ServiceUnavailableException("Product service tidak dapat dihubungi, coba lagi nanti");
+                throw new ServiceUnavailableException("Gagal mengambil data produk dari Product Service");
             }
 
-            return $response->json('data');
-        } catch (\Illuminate\Http\Client\ConnectionException $e) {
-            Log::error("Product service connection failed: " . $e->getMessage());
-            throw new ServiceUnavailableException("Product service tidak dapat dihubungi, coba lagi nanti");
+            return $response->json();
+        } catch (BusinessException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            throw new ServiceUnavailableException("Product Service tidak dapat diakses: " . $e->getMessage());
         }
     }
 }
