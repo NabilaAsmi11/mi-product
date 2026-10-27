@@ -22,7 +22,6 @@ class OrderService
 
     public function createOrder(int $userId): Order
     {
-        // 1. Ambil isi keranjang dari cart-service
         $cart = $this->cartClient->getCart($userId);
         
         $items = $cart['items'] ?? [];
@@ -33,7 +32,6 @@ class OrderService
         $orderItemsData = [];
         $totalAmount = 0;
 
-        // 2. Validasi setiap produk & stok dari product-service serta lakukan snapshot harga
         foreach ($items as $cartItem) {
             $productId = $cartItem['product_id'];
             $quantity = $cartItem['quantity'];
@@ -44,7 +42,6 @@ class OrderService
             $unitPrice = (float) ($product['price'] ?? 0); 
             $productName = $product['name'] ?? 'Unknown Product';
 
-            // Cek aturan bisnis: apakah stok cukup
             if ($stock < $quantity) {
                 throw new BusinessException("Stok {$productName} tidak mencukupi: diminta {$quantity}, tersedia {$stock}");
             }
@@ -61,7 +58,6 @@ class OrderService
             ];
         }
 
-        // 3. Simpan pesanan ke database menggunakan transaksi database (DB::transaction)
         $order = DB::transaction(function () use ($userId, $totalAmount, $orderItemsData) {
             $order = Order::create([
                 'user_id' => $userId,
@@ -76,21 +72,55 @@ class OrderService
             return $order;
         });
 
-        // 4. Minta cart-service mengosongkan keranjang
         $cleared = $this->cartClient->clearCart($userId);
         if (!$cleared) {
             Log::warning("Pesanan {$order->id} berhasil dibuat, tetapi keranjang user {$userId} gagal dikosongkan.");
         }
 
-        // Kembalikan pesanan beserta relasi items-nya
         return $order->load('items');
     }
 
     /**
-     * Get order detail by ID.
+     * Commit 8: Get order detail by ID.
      */
     public function getOrderById(int $id)
     {
         return Order::with('items')->find($id);
+    }
+
+    /**
+     * Commit 9: Get orders list by user ID with optional status filter.
+     */
+    public function getOrdersByUser(int $userId, ?string $status = null)
+    {
+        $query = Order::with('items')->where('user_id', $userId);
+
+        if ($status) {
+            $query->where('status', strtoupper($status));
+        }
+
+        return $query->get();
+    }
+
+    /**
+     * Commit 10: Simulate order payment and update status.
+     */
+    public function payOrder(int $id)
+    {
+        $order = Order::find($id);
+
+        if (!$order) {
+            return null;
+        }
+
+        if ($order->status === 'PAID') {
+            throw new BusinessException("Pesanan sudah pernah dibayar sebelumnya.");
+        }
+
+        $order->update(['status' => 'PAID']);
+
+        Log::info("Simulasi Pembayaran Berhasil: Pesanan ID {$id} telah lunas.");
+
+        return $order->load('items');
     }
 }
