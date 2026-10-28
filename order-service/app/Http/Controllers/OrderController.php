@@ -1,10 +1,10 @@
 <?php
 
 namespace App\Http\Controllers;
-
-use App\Http\Requests\StoreOrderRequest;
-use App\Services\OrderService;
 use App\Exceptions\BusinessException;
+use App\Http\Requests\StoreOrderRequest;
+use App\Models\Order;
+use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -17,6 +17,24 @@ class OrderController extends Controller
         $this->orderService = $orderService;
     }
 
+    /**
+     * Menampilkan semua pesanan.
+     */
+    public function index(): JsonResponse
+    {
+        $orders = Order::with('items')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json([
+            'message' => 'Orders retrieved successfully',
+            'data' => $orders,
+        ], 200);
+    }
+
+    /**
+     * Membuat pesanan baru.
+     */
     public function store(StoreOrderRequest $request): JsonResponse
     {
         $order = $this->orderService->createOrder(
@@ -25,12 +43,12 @@ class OrderController extends Controller
 
         return response()->json([
             'message' => 'Order created successfully',
-            'data' => $order
+            'data' => $order,
         ], 201);
     }
 
     /**
-     * Commit 8: Health check endpoint.
+     * Health check.
      */
     public function health(): JsonResponse
     {
@@ -42,7 +60,7 @@ class OrderController extends Controller
     }
 
     /**
-     * Commit 8: Get order detail by ID.
+     * Menampilkan detail pesanan berdasarkan ID.
      */
     public function show(int $id): JsonResponse
     {
@@ -50,32 +68,38 @@ class OrderController extends Controller
 
         if (!$order) {
             return response()->json([
-                'message' => 'Order not found'
+                'message' => 'Order not found',
             ], 404);
         }
 
         return response()->json([
             'message' => 'Order retrieved successfully',
-            'data' => $order
+            'data' => $order,
         ], 200);
     }
 
     /**
-     * Commit 9: Get user orders list with status filter.
+     * Menampilkan pesanan milik pengguna.
      */
-    public function getByUser(int $userId, Request $request): JsonResponse
-    {
+    public function getByUser(
+        int $userId,
+        Request $request
+    ): JsonResponse {
         $status = $request->query('status');
-        $orders = $this->orderService->getOrdersByUser($userId, $status);
+
+        $orders = $this->orderService->getOrdersByUser(
+            $userId,
+            $status
+        );
 
         return response()->json([
             'message' => 'User orders retrieved successfully',
-            'data' => $orders
+            'data' => $orders,
         ], 200);
     }
 
     /**
-     * Commit 10: Simulate order payment.
+     * Simulasi pembayaran pesanan.
      */
     public function pay(int $id): JsonResponse
     {
@@ -84,17 +108,17 @@ class OrderController extends Controller
 
             if (!$order) {
                 return response()->json([
-                    'message' => 'Order not found'
+                    'message' => 'Order not found',
                 ], 404);
             }
 
             return response()->json([
                 'message' => 'Payment simulation successful',
-                'data' => $order
+                'data' => $order,
             ], 200);
         } catch (BusinessException $e) {
             return response()->json([
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 409);
         }
     }
