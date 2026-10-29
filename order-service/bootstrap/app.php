@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Exceptions\BusinessException;
+use App\Exceptions\ServiceUnavailableException;
 use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -17,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        // Menangani kesalahan bisnis: HTTP 409
         $exceptions->render(function (
             BusinessException $e,
             Request $request
@@ -26,10 +28,26 @@ return Application::configure(basePath: dirname(__DIR__))
                     'message' => $e->getMessage(),
                     'data' => null,
                     'errors' => null,
-                ], $e->getCode() >= 400 && $e->getCode() <= 599
-                    ? $e->getCode()
-                    : 409);
+                ], 409);
             }
+
+            return null;
+        });
+
+        // Menangani service lain yang tidak dapat dihubungi: HTTP 503
+        $exceptions->render(function (
+            ServiceUnavailableException $e,
+            Request $request
+        ) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'message' => 'Product service tidak dapat dihubungi, coba lagi nanti',
+                    'data' => null,
+                    'errors' => null,
+                ], 503);
+            }
+
+            return null;
         });
     })
     ->create();

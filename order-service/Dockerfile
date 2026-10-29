@@ -1,26 +1,21 @@
-FROM php:8.2-cli
 
-# Install dependencies sistem yang dibutuhkan Laravel
+FROM php:8.4-cli
+
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
     libzip-dev \
-    && docker-php-ext-install pdo_mysql zip
+    && docker-php-ext-install pdo_mysql zip \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Set working directory di dalam container
 WORKDIR /app
 
-# Salin seluruh file proyek ke dalam container
 COPY . .
 
-# Install vendor dependencies tanpa paket development
-RUN composer install --no-dev --optimize-autoloader
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Expose port aplikasi
 EXPOSE 8000
 
-# Jalankan server Laravel
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+CMD ["sh", "-c", "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"]

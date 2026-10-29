@@ -35,8 +35,7 @@ return [
         ],
     ],
 
-    'product' => [
-        'url' => env('PRODUCT_SERVICE_BASE_URL', 'http://localhost:3000'),
-    ],
-
+'product' => [
+    'url' => 'http://product-service:3001',
+],
 ];

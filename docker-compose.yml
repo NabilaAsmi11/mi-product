@@ -1,89 +1,156 @@
+
 services:
+  # ==================== PRODUCT SERVICE ====================
   product-service:
     build: ./product-service
     container_name: product-service
-    restart: unless-stopped
     ports:
       - "3001:3001"
     environment:
-      PORT: 3001
+      APP_ENV: local
+      APP_DEBUG: "true"
       DB_HOST: product-db
-      DB_PORT: 5432
-      DB_USER: admin
-      DB_PASSWORD: admin123
-      DB_NAME: productdb
+      LOG_CHANNEL: stderr
     depends_on:
       product-db:
         condition: service_healthy
-    networks:
-      - product-network
+    restart: unless-stopped
 
+  # ==================== PRODUCT DATABASE ====================
   product-db:
     image: postgres:16-alpine
     container_name: product-db
-    restart: unless-stopped
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin123
       POSTGRES_DB: productdb
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: apppassword
     ports:
       - "5432:5432"
     volumes:
       - product-db-data:/var/lib/postgresql/data
-      - ./product-service/database/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d productdb"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U appuser -d productdb"]
+      interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - product-network
+    restart: unless-stopped
 
+  # ==================== REVIEW SERVICE ====================
   review-service:
     build: ./review-service
     container_name: review-service
-    restart: unless-stopped
     ports:
       - "3002:3002"
     environment:
-      HOST: 0.0.0.0
-      PORT: 3002
-      FLASK_DEBUG: 0
-      MONGO_URI: mongodb://appuser:apppassword@review-db:27017/?authSource=admin
-      MONGO_DB_NAME: reviewdb
-      PRODUCT_SERVICE_URL: http://product-service:3001
+      MONGO_URI: mongodb://review-db:27017/reviewdb
     depends_on:
       review-db:
-        condition: service_healthy
-      product-service:
         condition: service_started
-    networks:
-      - product-network
+    restart: unless-stopped
 
+  # ==================== REVIEW DATABASE ====================
   review-db:
     image: mongo:7
     container_name: review-db
-    restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: appuser
-      MONGO_INITDB_ROOT_PASSWORD: apppassword
     ports:
       - "27017:27017"
     volumes:
       - review-db-data:/data/db
+    restart: unless-stopped
+
+  # ==================== CART SERVICE ====================
+  cart-service:
+    build: ./cart-service
+    container_name: cart-service
+    ports:
+      - "3004:3001"
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_KEY: "${CART_APP_KEY:-}"
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: pgsql
+      DB_HOST: cart-db
+      DB_PORT: 5432
+      DB_DATABASE: cartdb
+      DB_USERNAME: appuser
+      DB_PASSWORD: apppassword
+      PRODUCT_SERVICE_URL: "http://product-service:3001"
+    command: php artisan serve --host=0.0.0.0 --port=3001
+    depends_on:
+      cart-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ==================== CART DATABASE ====================
+  cart-db:
+    image: postgres:16-alpine
+    container_name: cart-db
+    environment:
+      POSTGRES_DB: cartdb
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: apppassword
+    ports:
+      - "5433:5432"
+    volumes:
+      - cart-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      test: ["CMD-SHELL", "pg_isready -U appuser -d cartdb"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 20s
-    networks:
-      - product-network
+    restart: unless-stopped
+
+  # ==================== ORDER SERVICE ====================
+  order-service:
+    build: ./order-service
+    container_name: order-service
+    ports:
+      - "3003:8000"
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "false"
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: mysql
+      DB_HOST: order-db
+      DB_PORT: 3306
+      DB_DATABASE: order_db
+      DB_USERNAME: order_app
+      DB_PASSWORD: "OrderApp123!"
+      CART_SERVICE_URL: http://cart-service:3001
+      PRODUCT_SERVICE_URL: http://product-service:3001
+    depends_on:
+      order-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ==================== ORDER DATABASE ====================
+  order-db:
+    image: mysql:8.0
+    container_name: order-db
+    environment:
+      MYSQL_ROOT_PASSWORD: "${ORDER_DB_PASSWORD:-secret}"
+      MYSQL_DATABASE: order_db
+      MYSQL_USER: order_app
+      MYSQL_PASSWORD: "OrderApp123!"
+    ports:
+      - "3308:3306"
+    volumes:
+      - order-db-data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -uroot -p\"$${MYSQL_ROOT_PASSWORD}\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
 
 volumes:
   product-db-data:
   review-db-data:
-
-networks:
-  product-network:
-    driver: bridge
+  cart-db-data:
+  order-db-data:

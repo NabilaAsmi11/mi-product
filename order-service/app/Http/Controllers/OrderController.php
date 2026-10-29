@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use App\Exceptions\BusinessException;
 use App\Http\Requests\StoreOrderRequest;
 use App\Models\Order;
@@ -85,6 +86,11 @@ class OrderController extends Controller
         int $userId,
         Request $request
     ): JsonResponse {
+        // Validasi query parameter status agar menolak nilai yang tidak terdaftar
+        $request->validate([
+            'status' => 'sometimes|in:PENDING,PAID,CANCELLED',
+        ]);
+
         $status = $request->query('status');
 
         $orders = $this->orderService->getOrdersByUser(

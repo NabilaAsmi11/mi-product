@@ -49,7 +49,9 @@ return [
     ],
 
     'cart' => [
-        'url' => env('CART_SERVICE_URL', 'http://cart-service:3000'),
+        'url' => env('CART_SERVICE_URL', 'http://cart-service:3001'),
     ],
+
+    
 
 ];

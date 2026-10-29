@@ -1,7 +1,9 @@
 <?php
 
 namespace App\Services\Clients;
+
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use App\Exceptions\ServiceUnavailableException;
 
 class CartServiceClient
@@ -11,7 +13,7 @@ class CartServiceClient
     public function __construct()
     {
         $this->baseUrl = rtrim(
-            config('services.cart.url', 'http://cart-service:3000'),
+            config('services.cart.url', 'http://cart-service:3001'),
             '/'
         );
     }
@@ -28,13 +30,26 @@ class CartServiceClient
                 );
             }
 
-            return $response->json() ?? [];
-        } catch (\Illuminate\Http\Client\ConnectionException $e) {
-            throw new ServiceUnavailableException(
-                'Cart Service tidak dapat diakses'
-            );
+            $cart = $response->json('data');
+
+            if (
+                !is_array($cart) ||
+                !isset($cart['user_id']) ||
+                !isset($cart['items']) ||
+                !is_array($cart['items'])
+            ) {
+                throw new ServiceUnavailableException(
+                    'Format respons Cart Service tidak sesuai'
+                );
+            }
+
+            return $cart;
         } catch (ServiceUnavailableException $e) {
             throw $e;
+        } catch (\Exception $e) {
+            throw new ServiceUnavailableException(
+                'Cart Service tidak dapat diakses: ' . $e->getMessage()
+            );
         }
     }
 
@@ -44,11 +59,23 @@ class CartServiceClient
             $response = Http::timeout(5)
                 ->delete("{$this->baseUrl}/api/carts/{$userId}");
 
-            return $response->successful();
-        } catch (\Illuminate\Http\Client\ConnectionException $e) {
-            throw new ServiceUnavailableException(
-                'Cart Service tidak dapat diakses'
+            if ($response->failed()) {
+                Log::warning(
+                    "Gagal mengosongkan keranjang user {$userId}",
+                    ['status' => $response->status()]
+                );
+
+                return false;
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            Log::warning(
+                "Cart Service tidak dapat diakses saat mengosongkan keranjang user {$userId}",
+                ['error' => $e->getMessage()]
             );
+
+            return false;
         }
     }
 }
