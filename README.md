@@ -16,7 +16,7 @@ Proyek ini dibuat untuk memenuhi tugas Ujian Tengah Semester (UTS) mata kuliah M
 - **Containerization:** Docker dan Docker Compose
 - **Komunikasi Antarservice:** REST API
 - **HTTP Client:** Laravel HTTP Client
-- **API Testing:** Postman
+- **API Testing:** Insomnia
 - **Version Control:** Git dan GitHub
 
 ## ✨ Fitur Utama
