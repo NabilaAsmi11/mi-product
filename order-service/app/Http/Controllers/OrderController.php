@@ -86,7 +86,7 @@ class OrderController extends Controller
         int $userId,
         Request $request
     ): JsonResponse {
-        // Validasi query parameter status agar menolak nilai yang tidak terdaftar
+       
         $request->validate([
             'status' => 'sometimes|in:PENDING,PAID,CANCELLED',
         ]);

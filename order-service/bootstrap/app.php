@@ -34,7 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             return null;
         });
 
-        // Menangani service lain yang tidak dapat dihubungi: HTTP 503
+       
         $exceptions->render(function (
             ServiceUnavailableException $e,
             Request $request
