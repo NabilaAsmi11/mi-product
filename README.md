@@ -69,7 +69,7 @@ Pastikan perangkat sudah memiliki:
 - Docker Desktop
 - Git
 - Visual Studio Code atau editor kode lainnya
-- Postman untuk pengujian API
+- Insomnia untuk pengujian API
 
 ## 🚀 Cara Menjalankan Proyek
 
