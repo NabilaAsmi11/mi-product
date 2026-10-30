@@ -16,7 +16,7 @@ Proyek ini dibuat untuk memenuhi tugas Ujian Tengah Semester (UTS) mata kuliah M
 - **Containerization:** Docker dan Docker Compose
 - **Komunikasi Antarservice:** REST API
 - **HTTP Client:** Laravel HTTP Client
-- **API Testing:** Postman
+- **API Testing:** Insomnia
 - **Version Control:** Git dan GitHub
 
 ## ✨ Fitur Utama
@@ -40,15 +40,19 @@ Sistem menggunakan pendekatan Microservices, yaitu membagi aplikasi menjadi bebe
 ### Komponen Sistem
 
 1. **Order Service**
+
    Bertanggung jawab mengelola proses checkout, membuat pesanan, menyimpan data pesanan dan item pesanan, menampilkan riwayat pesanan, serta menangani simulasi pembayaran.
 
 2. **Product Service**
+
    Menyediakan informasi produk dan data stok yang dibutuhkan Order Service untuk memvalidasi pesanan.
 
 3. **Cart Service**
+
    Menyediakan data keranjang belanja pengguna yang digunakan sebagai sumber item dalam proses checkout.
 
 4. **MySQL Database**
+
    Menyimpan data pesanan dan item pesanan yang dikelola oleh Order Service.
 
 ### Alur Proses Checkout
@@ -69,7 +73,7 @@ Pastikan perangkat sudah memiliki:
 - Docker Desktop
 - Git
 - Visual Studio Code atau editor kode lainnya
-- Postman untuk pengujian API
+- Insomnia untuk pengujian API
 
 ## 🚀 Cara Menjalankan Proyek
 
@@ -271,9 +275,9 @@ Order Service perlu menangani kesalahan validasi, aturan bisnis, serta kegagalan
 
 Status HTTP aktual bergantung pada implementasi dan aturan penanganan error yang digunakan.
 
-## 🧪 Pengujian API dengan Postman
+## 🧪 Pengujian API dengan Insomnia
 
-Pengujian dilakukan untuk memastikan setiap endpoint berfungsi sesuai kebutuhan.
+Pengujian dilakukan menggunakan aplikasi **Insomnia** untuk memastikan setiap endpoint berfungsi sesuai kebutuhan.
 
 Skenario pengujian yang dapat dilakukan:
 
@@ -335,11 +339,14 @@ mi-product/
 
 ## 👩‍💻 Author
 
-**Nama:** Nabila Putri Asmi  
-**Program Studi:** Sistem Informasi  
+**Nama:** Nabila Putri Asmi
+
+**Program Studi:** Sistem Informasi
+
 **Perguruan Tinggi:** Politeknik Negeri Padang
 
 ---
 
-**Microservices Order Service & E-Commerce System**  
+**Microservices Order Service & E-Commerce System**
+
 Proyek Ujian Tengah Semester (UTS) Mata Kuliah Microservices.
